@@ -20,9 +20,8 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB de tamaño máximo de archivo
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB
 
-# Asegurar que exista la carpeta de subida
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
@@ -99,30 +98,6 @@ def process_image_with_points(image_path):
         print(f"Error en process_image_with_points: {str(e)}")
         raise
 
-@app.route('/predict', methods=['POST'])
-def predict_emotion():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No se envió ninguna imagen'}), 400
-
-    file = request.files['file']
-    if file.filename == '' or not allowed_file(file.filename):
-        return jsonify({'error': 'Archivo inválido'}), 400
-
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
-
-    try:
-        result_image = process_image_with_points(filepath)
-        if result_image is None:
-            return jsonify({'emocion': 'No se detectó rostro', 'image': None}), 200
-
-        emotion = detect_emotion(filepath)
-        return jsonify({'emocion': emotion, 'image': result_image}), 200
-
-    except Exception as e:
-        return jsonify({'error': f'Error al procesar la imagen: {str(e)}'}), 500
-
 @app.route('/')
 def home():
     images = []
@@ -157,6 +132,30 @@ def analyze():
     except Exception as e:
         print(f"Error en /analyze: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/predict', methods=['POST'])
+def predict_emotion():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No se envió ninguna imagen'}), 400
+
+    file = request.files['file']
+    if file.filename == '' or not allowed_file(file.filename):
+        return jsonify({'error': 'Archivo inválido'}), 400
+
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    try:
+        result_image = process_image_with_points(filepath)
+        if result_image is None:
+            return jsonify({'emocion': 'No se detectó rostro', 'image': None}), 200
+
+        emotion = detect_emotion(filepath)
+        return jsonify({'emocion': emotion, 'image': result_image}), 200
+
+    except Exception as e:
+        return jsonify({'error': f'Error al procesar la imagen: {str(e)}'}), 500
 
 @app.route('/visualize_dataset', methods=['GET'])
 def visualize_dataset():
